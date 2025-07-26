@@ -10,26 +10,36 @@ async function findAgentByRegion(region) {
 exports.registerCrop = async (req, res) => {
   try {
     const { name, acres, cultivationStartDate, preferredLanguage, typeOfSoil, age, gender, phone, address, endDate, quantity, price } = req.body;
-// ... existing code ...
-const crop = new Crop({
-  farmer: farmerId,
-  name,
-  acres,
-  cultivationStartDate,
-  preferredLanguage,
-  typeOfSoil,
-  agent: agent ? agent._id : null,
-  farmerDetails: { age, gender, phone, address },
-  endDate,
-  quantity,
-  price
-});
+    
+    const farmerId = req.user.userId;
+    
+    // Find agent in same region as farmer
+    const farmer = await User.findById(farmerId);
+    const agent = farmer.region ? await findAgentByRegion(farmer.region) : null;
+
+    const crop = new Crop({
+      farmer: farmerId,
+      name,
+      acres,
+      cultivationStartDate,
+      preferredLanguage,
+      typeOfSoil,
+      agent: agent ? agent._id : null,
+      farmerDetails: { age, gender, phone, address },
+      endDate,
+      quantity,
+      price
+    });
 
     await crop.save();
 
-    // Generate unique Farmer ID (for demo, use crop._id)
-    res.status(201).json({ message: 'Crop registered', cropId: crop._id, assignedAgent: agent ? agent.name : null });
+    res.status(201).json({ 
+      message: 'Crop registered successfully', 
+      cropId: crop._id, 
+      assignedAgent: agent ? agent.name : null 
+    });
   } catch (err) {
+    console.error('Crop registration error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -41,9 +51,11 @@ exports.getMyCrops = async (req, res) => {
     const crops = await Crop.find({ farmer: req.user.userId })
       .populate('agent', 'name email phone region')
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
     res.json(crops);
   } catch (err) {
+    console.error('Get crops error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -16,13 +16,11 @@ const cropSchema = new mongoose.Schema({
     address: String
   },
   rejectionReason: { type: String },
-  createdAt: { type: Date, default: Date.now },
-  // ... existing code ...
-endDate: { type: Date },
-quantity: { type: Number },
-price: { type: Number },
-liveStatus: { type: String, enum: ['active', 'completed', 'failed'], default: 'active' },
-// ... existing code ...
+  endDate: { type: Date },
+  quantity: { type: Number },
+  price: { type: Number },
+  liveStatus: { type: String, enum: ['active', 'completed', 'failed'], default: 'active' },
+  createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Crop', cropSchema);

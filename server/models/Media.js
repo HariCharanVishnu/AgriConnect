@@ -5,7 +5,9 @@ const mediaSchema = new mongoose.Schema({
   agent: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // assigned agent
   description: { type: String },
   fileUrl: { type: String, required: true },
-  fileType: { type: String, enum: ['image', 'video'], required: true },
+  fileType: { type: String, enum: ['image', 'video', 'pdf', 'document'], required: true },
+  fileName: { type: String },
+  fileSize: { type: Number }, // in bytes
   createdAt: { type: Date, default: Date.now }
 });
 

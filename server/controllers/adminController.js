@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Crop = require('../models/Crop');
+const Payment = require('../models/Payment');
 
 // View all agents with number of assigned farmers
 exports.getAgents = async (req, res) => {
@@ -23,34 +24,87 @@ exports.getAgents = async (req, res) => {
     );
     res.json(agentData);
   } catch (err) {
+    console.error('Get agents error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Bar chart: annual revenue trends (dummy, real logic depends on Payment model)
+// Bar chart: annual revenue trends
 exports.getAnnualRevenue = async (req, res) => {
-  // Example: group by year, sum revenue
-  // Implement after Payment model is added
-  res.json([
-    { year: 2022, revenue: 100000 },
-    { year: 2023, revenue: 150000 }
-  ]);
+  try {
+    const payments = await Payment.aggregate([
+      {
+        $group: {
+          _id: { $year: "$createdAt" },
+          revenue: { $sum: "$total" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    const revenueData = payments.map(p => ({
+      year: p._id,
+      revenue: p.revenue
+    }));
+    
+    res.json(revenueData);
+  } catch (err) {
+    console.error('Get annual revenue error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
 // Pie chart: crop-wise farmer distribution
 exports.getCropDistribution = async (req, res) => {
-  // Example: group by crop name, count farmers
-  const crops = await Crop.aggregate([
-    { $group: { _id: "$name", count: { $sum: 1 } } }
-  ]);
-  res.json(crops);
+  try {
+    const crops = await Crop.aggregate([
+      { $group: { _id: "$name", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    res.json(crops);
+  } catch (err) {
+    console.error('Get crop distribution error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
-// Region-wise and total company revenue (dummy)
+// Region-wise revenue
 exports.getRegionRevenue = async (req, res) => {
-  // Implement after Payment model is added
-  res.json([
-    { region: "East", revenue: 50000 },
-    { region: "West", revenue: 70000 }
-  ]);
+  try {
+    const payments = await Payment.aggregate([
+      {
+        $lookup: {
+          from: 'crops',
+          localField: 'crop',
+          foreignField: '_id',
+          as: 'cropData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'cropData.farmer',
+          foreignField: '_id',
+          as: 'farmerData'
+        }
+      },
+      {
+        $group: {
+          _id: { $arrayElemAt: ['$farmerData.region', 0] },
+          revenue: { $sum: '$total' }
+        }
+      },
+      { $sort: { revenue: -1 } }
+    ]);
+    
+    const regionData = payments.map(p => ({
+      region: p._id || 'Unknown',
+      revenue: p.revenue
+    }));
+    
+    res.json(regionData);
+  } catch (err) {
+    console.error('Get region revenue error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };

@@ -1,34 +1,131 @@
-import React, { createContext, useState, useEffect } from "react";
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-export const AuthContext = createContext();
+exports.signup = async (req, res) => {
+  try {
+    const { name, email, phone, password, role, region } = req.body;
+    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
+    if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user")));
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
-
-  useEffect(() => {
-    if (user && token) {
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("token", token);
-    } else {
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
+    let farmerId = undefined;
+    if (role === 'farmer') {
+      // Generate custom Farmer ID: FARM-YYYY-XXXX
+      const year = new Date().getFullYear();
+      const lastFarmer = await User.findOne({ role: 'farmer' }).sort({ createdAt: -1 });
+      let nextId = 1;
+      if (lastFarmer && lastFarmer.farmerId) {
+        const lastNum = parseInt(lastFarmer.farmerId.split('-')[2]);
+        nextId = lastNum + 1;
+      }
+      farmerId = `FARM-${year}-${String(nextId).padStart(4, '0')}`;
     }
-  }, [user, token]);
 
-  const login = (userData, jwt) => {
-    setUser(userData);
-    setToken(jwt);
-  };
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ name, email, phone, password: hashedPassword, role, region, farmerId });
+    await user.save();
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-  };
+    res.status(201).json({ message: 'Signup successful', farmerId: user.farmerId });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+exports.login = async (req, res) => {
+  try {
+    const { emailOrPhone, password } = req.body;
+    const user = await User.findOne({ $or: [{ email: emailOrPhone }, { phone: emailOrPhone }] });
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({ token, user: { id: user._id, name: user.name, role: user.role, region: user.region } });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.createDemoUsers = async (req, res) => {
+  try {
+    // Check if demo users already exist
+    const existingUsers = await User.find({
+      $or: [
+        { email: 'farmer@example.com' },
+        { email: 'agent@example.com' },
+        { email: 'admin@example.com' }
+      ]
+    });
+
+    if (existingUsers.length > 0) {
+      return res.json({ 
+        message: 'Demo users already exist', 
+        users: existingUsers.map(u => ({ email: u.email, role: u.role, name: u.name }))
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash('password123', 10);
+
+    // Create demo users
+    const demoUsers = [
+      {
+        name: 'Demo Farmer',
+        email: 'farmer@example.com',
+        phone: '9876543210',
+        password: hashedPassword,
+        role: 'farmer',
+        region: 'Andhra Pradesh',
+        farmerId: 'FARM-2024-0001'
+      },
+      {
+        name: 'Demo Agent',
+        email: 'agent@example.com',
+        phone: '9876543211',
+        password: hashedPassword,
+        role: 'agent',
+        region: 'Andhra Pradesh'
+      },
+      {
+        name: 'Demo Admin',
+        email: 'admin@example.com',
+        phone: '9876543212',
+        password: hashedPassword,
+        role: 'admin',
+        region: 'All India'
+      }
+    ];
+
+    // Insert users
+    const createdUsers = await User.insertMany(demoUsers);
+
+    res.json({ 
+      message: 'Demo users created successfully',
+      users: createdUsers.map(u => ({ email: u.email, role: u.role, name: u.name })),
+      credentials: {
+        farmer: 'farmer@example.com / password123',
+        agent: 'agent@example.com / password123',
+        admin: 'admin@example.com / password123'
+      }
+    });
+  } catch (error) {
+    console.error('Error creating demo users:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const updates = req.body;
+    const user = await User.findByIdAndUpdate(req.user.userId, updates, { new: true });
+    res.json({ message: 'Profile updated', user });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
 };

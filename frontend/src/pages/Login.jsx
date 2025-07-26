@@ -8,42 +8,98 @@ const Login = () => {
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+    
     try {
       const res = await api.post("/auth/login", { emailOrPhone, password });
       login(res.data.user, res.data.token);
-      if (res.data.user.role === "farmer") navigate("/farmer");
-      else if (res.data.user.role === "agent") navigate("/agent");
-      else if (res.data.user.role === "admin") navigate("/admin");
+      
+      // Redirect based on user role
+      if (res.data.user.role === "farmer") {
+        navigate("/farmer");
+      } else if (res.data.user.role === "agent") {
+        navigate("/agent");
+      } else if (res.data.user.role === "admin") {
+        navigate("/admin");
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-80">
-        <h2 className="text-2xl mb-4">Login</h2>
-        {error && <div className="text-red-500 mb-2">{error}</div>}
-        <input
-          type="text"
-          placeholder="Email or Phone"
-          value={emailOrPhone}
-          onChange={e => setEmailOrPhone(e.target.value)}
-          className="w-full mb-2 p-2 border rounded"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className="w-full mb-4 p-2 border rounded"
-        />
-        <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">Login</button>
-      </form>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">SAP Project</h1>
+          <p className="text-gray-600">Sign in to your account</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label htmlFor="emailOrPhone" className="block text-sm font-medium text-gray-700 mb-2">
+              Email or Phone
+            </label>
+            <input
+              id="emailOrPhone"
+              type="text"
+              placeholder="Enter your email or phone number"
+              value={emailOrPhone}
+              onChange={(e) => setEmailOrPhone(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+        
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Demo Credentials:
+          </p>
+          <div className="mt-2 text-xs text-gray-500 space-y-1">
+            <p>Farmer: farmer@example.com / password123</p>
+            <p>Agent: agent@example.com / password123</p>
+            <p>Admin: admin@example.com / password123</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
