@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const auth = require('../middleware/auth');
-const { uploadMedia, getAgentMedia } = require('../controllers/mediaController');
+const { uploadMedia, getAgentMedia, getFarmerMedia } = require('../controllers/mediaController');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = 'uploads';
@@ -59,5 +59,8 @@ router.post('/upload', auth('farmer'), upload.single('file'), handleMulterError,
 
 // Agent views media uploads
 router.get('/agent', auth('agent'), getAgentMedia);
+
+// Farmer views their media uploads
+router.get('/farmer', auth('farmer'), getFarmerMedia);
 
 module.exports = router;

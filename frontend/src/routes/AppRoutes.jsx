@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import Login from "../pages/Login";
+import TestPage from "../pages/TestPage";
 import FarmerDashboard from "../pages/farmer/FarmerDashBoard";
 import AgentDashboard from "../pages/agent/AgentDashboard";
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -27,6 +28,7 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/test" element={<TestPage />} />
       <Route path="/login" element={<Login />} />
       
       <Route 

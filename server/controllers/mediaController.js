@@ -71,3 +71,16 @@ exports.getAgentMedia = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// Farmer views their media uploads
+exports.getFarmerMedia = async (req, res) => {
+  try {
+    const farmerId = req.user.userId;
+    const media = await Media.find({ farmer: farmerId })
+      .sort({ createdAt: -1 });
+    res.json(media);
+  } catch (err) {
+    console.error('Get farmer media error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

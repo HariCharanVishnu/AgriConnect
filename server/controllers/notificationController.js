@@ -45,17 +45,7 @@ exports.getMyNotifications = async (req, res) => {
       .skip(skip)
       .limit(Number(limit));
       
-    const total = await Notification.countDocuments({ to: req.user.userId });
-    
-    res.json({
-      notifications,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
+    res.json(notifications);
   } catch (err) {
     console.error('Get notifications error:', err);
     res.status(500).json({ message: 'Server error' });

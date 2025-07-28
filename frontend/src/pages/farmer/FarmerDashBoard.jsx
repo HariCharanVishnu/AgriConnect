@@ -22,7 +22,7 @@ const FarmerDashboard = () => {
           api.get("/crop/my"),
           api.get("/notification/my"),
           api.get("/payment/farmer"),
-          api.get("/media/agent")
+          api.get("/media/farmer")
         ]);
         
         setCrops(cropsRes.data);
