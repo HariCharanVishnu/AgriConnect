@@ -36,7 +36,12 @@ echo 🚀 Starting frontend server...
 start "Frontend Server" cmd /k "cd frontend && npm run dev"
 
 echo.
-echo ✅ Both servers are starting...
+echo 🌾 Starting AI service...
+start "AI Service" cmd /k "cd ai-services\crop_prediction && python app.py"
+
+echo.
+echo ✅ All services are starting...
 echo 🌐 Open http://localhost:5173 in your browser
+echo 🌾 AI Service: http://localhost:5001
 echo.
 pause 
